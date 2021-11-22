@@ -11,7 +11,7 @@
 
 from paho.mqtt import client as mqtt_client
 from transformer import Transformer
-import pdb, sys
+import json, pdb, sys
 
 # --------------------------------------------
 broker = 'localhost'
@@ -27,6 +27,8 @@ CONFIG_0 = {
 }
 # --------------------------------------------
 
+tx = Transformer()
+
 def _on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT Broker!")
@@ -34,43 +36,46 @@ def _on_connect(client, userdata, flags, rc):
         print("Failed to connect, return code %d\n", rc)
 
 def _on_message(client, userdata, msg):
-    pdb.set_trace()
-    jmsg = msg.payload.decode('utf-8')
-    dd = json.loads(jmsg)
-    ddstr = str(dd)
+    # pdb.set_trace()
+    dmsg = msg.payload.decode('utf-8')[9:]
+    dd = json.loads(dmsg)
+    dat = tx.convert_back_msg(dd)
+    ddstr = str(dat)
     # print(f"Received {jmsg} from {msg.topic}` topic")
-    print(f"Received {ddstr} from {msg.topic}` topic")
-
+    print(f"Received from {msg.topic}` topic:")
+    print(f"{ddstr}\n")
 
 class MQTTClient:
-    def __init__(self, conf, clien_id):
-        self.tx = Transformer()
-        self.clien_id = clien_id
+    def __init__(self, conf, client_id):
+        self.client_id = client_id
         self.conf = conf
-        self.client = mqtt_client.Client(conf["client_id"])
-        self.client.username_pw_set(conf.username, conf.password)
+        self.client = mqtt_client.Client(client_id)
+        self.client.username_pw_set(conf["username"], conf["password"])
         self.client.on_connect = _on_connect
         self.client.connect(broker, port)
 
     def subscribe(self, topic):
+        the_topic = self.conf["topic_root"] + f"/{topic}"
         self.client.on_message = _on_message
-        self.client.subscribe(topic)
+        self.client.subscribe(the_topic)
         pass
 
     def publish(self, topic):
+        the_topic = self.conf["topic_root"] + f"/{topic}"
         while True:
             m = input("What to send(END for stopping):")
             if m == "END":
                 self.client.loop_stop()
                 print(f"Stooped. Bye.")
                 break
-            data = self.tx.get_sample_data()
+            data = tx.get_sample_data()
             data['input'] = m
-            jmsg = json.dumps(data)
+            dat = tx.convert_msg2b64(data)
+            jmsg = json.dumps(dat)
             msg = f"message: {jmsg}"
             # pdb.set_trace()
             payload = msg.encode('utf-8')
-            result = self.client.publish(topic, msg)
+            result = self.client.publish(the_topic, msg)
             # result: [0, 1]
             status = result[0]
             if status == 0:

@@ -1,1 +1,18 @@
+2021-11-22b:
+- client.py starts working: 
+  start a sub-client:
+    python client.py s <topic>
+  start a pub-client:
+    python client p <topic>
+  
+  I succeeded in base64-encode every string in a python dict.
+  I do this purely because unicode-string distortion issue when going thru
+  a TCP-IP(MQTT) tunnel). For that it is successful then.
+
+  I could do the same for int/float too. In that case, the message
+  is totally base64 encoded. It is data-security enhanced then.
+  As for now, I do need clarity in saved (into DB) messages. But
+  I could save encoded version of dict into DB, so that data-encryption
+  is featured.
+
 2021-11-22a: initial
